@@ -13,7 +13,7 @@
 <br>
 
 # How To Setup # 
-This is a Guide on how to setup the Mod on an Emulator.
+This is a Guide on how to setup the Mod on an Emulator on Windows.
 
 ## Preparations ##
 To get this to work you need the following things already:
