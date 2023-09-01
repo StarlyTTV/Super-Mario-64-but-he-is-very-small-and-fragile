@@ -18,7 +18,10 @@ This is a Guide on how to setup the Challenge on an Emulator.
 ## Preparations ##
 To get this to work you need the following things already:
 * A Mario 64 ROM (US Version) --> I can't tell you where to get that
-* An Emulator to play the Game (Project64, Mupen64Plus, Parallel Launcher, etc ...)
+* An Emulator to play the Game setup (Examples: Project64, Mupen64Plus, Parallel Launcher)
+  * Project64: https://www.pj64-emu.com/
+  * Mupen64Plus: https://mupen64plus.org/
+  * Parallel Launcher: https://parallel-launcher.ca/
 * The Patch file for the Mod: 
 * Floating IPS to patch the ROM: https://www.romhacking.net/utilities/1040/
 
