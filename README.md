@@ -92,18 +92,18 @@ I wanna say, that this is my first Mod for the Game I ever made, so I just chang
 
 ### File Listing ###
 These are all the Files, that I changed:
-* object_list_processor.c
-* mario.c
-* mario_actions_moving.c
-* mario_actions_airbone.c
-* mario_actions_submerged.c
-* dialogs.h (us folder)
+* src\game\object_list_processor.c
+* src\game\mario.c
+* src\game\mario_actions_moving.c
+* src\game\mario_actions_airbone.c
+* src\game\mario_actions_submerged.c
+* text\us\dialogs.h
 
 ### What I changed ###
 Here are the changes listed, that I made to the files.
 
 ____________________________________
-#### object_list_processor.c --> Is used to processing objects within the game.
+#### src\game\object_list_processor.c --> Is used to processing objects within the game.
 
 To change Marios size permanently (shrinking him down by 50%) I added the following Code to the Function **"bhv_mario_update"**: <br>
 ```C
@@ -117,21 +117,53 @@ gCurrentObject->header.gfx.scale[2] = scale;
 ```
 
 ____________________________________
-#### mario.c --> Contains the logic of functionalities regarding Mario.
+#### src\game\mario.c --> Contains the logic of functionalities regarding Mario.
 
-Mario should die each time he gets damage, so I changed m->health to 0 no matter the damage reason in the function "update_mario_health":
+Mario should die each time he gets damage, so I changed m->health to 0 no matter the damage reason in the function **"update_mario_health"**:
 ```C
-// Set Mario's health to zero when he takes damage
-m->health = 0;
+void update_mario_health(struct MarioState *m) {
+    s32 terrainIsSnow;
+
+    if (m->health >= 0x100) {
+        // When already healing or hurting Mario, Mario's HP is not changed any more here.
+        if (((u32) m->healCounter | (u32) m->hurtCounter) == 0) {
+
+            if ((m->input & INPUT_IN_POISON_GAS) && !(m->action & ACT_FLAG_INTANGIBLE)) {
+                if (!(m->flags & MARIO_METAL_CAP) && !gDebugLevelSelect) {
+                    // Set Mario's health to zero when he takes damage
+                    m->health = 0;
+                }
+            } else {
+                if ((m->action & ACT_FLAG_SWIMMING) && !(m->action & ACT_FLAG_INTANGIBLE)) {
+                    terrainIsSnow = (m->area->terrainType & TERRAIN_MASK) == TERRAIN_SNOW;
+
+                    // Check if Mario is in the Metal Mario state
+                    s32 hasMetalCap = (m->flags & MARIO_METAL_CAP) != 0;
+
+                    // When Mario is near the water surface, recover health (unless in snow),
+                    // when in snow terrains lose 3 health.
+                    // If using the debug level select, do not lose any HP to water.
+                    if ((m->pos[1] >= (m->waterLevel - 140)) && !terrainIsSnow) {
+                        m->health += 0x1A;
+                    } else if (!gDebugLevelSelect) {
+                        // Check if Mario is not in the Metal Mario state
+                        if (!hasMetalCap) {
+                            // Set Mario's health to zero when he takes damage underwater (not in the Metal Mario State)
+                            m->health = 0;
+                        }
+                    }
+                }
+            }
+        }
 ```
 
-I changed Mario Lives he gets in the beginning to 100, so you wouldn't constantly get a Game Over (I changed this line):
+I changed Mario Lives he gets in the beginning to 100, so you wouldn't constantly get a Game Over (I changed this line) in the function **"init_mario_from_save_file"**:
 ```C
 gMarioState->numLives = 100;
 ```
 
 ____________________________________
-#### mario_actions_moving.c --> Handles behaviour of Mario while Moving
+#### src\game\mario_actions_moving.c --> Handles behaviour of Mario while Moving
 
 I changed a bunch of speed stats. I just searched for speed, looked what the respective speed stat is for (walking speed, shell speed, etc ...) and changed it, until it felt right.
 
@@ -145,8 +177,14 @@ if (m->floor != NULL && m->floor->type == SURFACE_SLOW) {
 ```
 --> The first stat is for the walking speed on slow surfaces and the second one for normal surfaces
 
+fire damage in act_burning_ground:
+```C
+// Decrease health to 0 instantly
+    m->health = 0;
+```
+
 ____________________________________
-#### mario_actions_airborne.c --> Handles behaviour of Mario while in the air.
+#### src\game\mario_actions_airborne.c --> Handles behaviour of Mario while in the air.
 
 First I had to edit some threshold values.
 
@@ -210,8 +248,31 @@ So that Mario will always get stuck when he jump above snow, I changed the peakH
 if (!(flags & 0x01) && m->peakHeight - m->pos[1] > -1.0f && floor->normal.y >= 0.8660254f)
 ```
 
+
+forward rollout in function act_forward_rollout:
+```C
+// Check for fall damage when exceeding 170 units of fall height
+            if (m->vel[1] < 0.0f) {
+                f32 fallHeight = m->peakHeight - m->pos[1];
+                if (fallHeight > 170.0f) {
+                    // Use the check_fall_damage_or_get_stuck function
+                    if (!check_fall_damage_or_get_stuck(m, ACT_HARD_FORWARD_GROUND_KB)) {
+                        // Play fall damage animation (e.g., a spinning animation)
+                        set_mario_animation(m, MARIO_ANIM_FORWARD_FLIP);
+                    }
+                }
+            }
+            break;
+```
+
+fire damage in act_burning_jump und act_burning_fall:
+```C
+// Decrease health to 0 instantly
+    m->health = 0;
+```
+
 ____________________________________
-#### mario_actions_submerged.c --> Handles behaviour of Mario while submerged underwater.
+#### src\game\mario_actions_submerged.c --> Handles behaviour of Mario while submerged underwater.
 
 I changed the swimming speed to be really slow:
 ```C
@@ -219,13 +280,35 @@ f32 maxSpeed = 7.0f;
 ```
 
 ____________________________________
-#### dialogs.h (Us Folder) --> Contains written dialog of the game
+#### text\us\dialogs.h --> Contains written dialog of the game
 
 I changed the written dialog in the beginning cutscene of the game:
 ```h
 DEFINE_DIALOG(DIALOG_020, 1, 6, 95, 150, _("\
 Dear Mario:\n\
 You are short. Lol."))
+```
+
+60 Star stuff:
+```h
+DEFINE_DIALOG(DIALOG_029, 1, 5, 95, 200, _("\
+To open the door that\n\
+leads to the 『endless』\n\
+stairs, you need 60\n\
+Stars.\n\
+Bwa ha ha!"))
+```
+
+```h
+DEFINE_DIALOG(DIALOG_146, 1, 6, 150, 200, _("\
+You've found 70 Power\n\
+Stars! Something I couldn't\n\
+do. You are absolutely amazing!!!\n\
+I had to lower the star count\n\
+required to beat the final Bowser\n\
+to 60, to make it possible for me.\n\
+You are truly a pro Mario Player\n\
+and an absolute Legend!!!"))
 ```
 ____________________________________
 
