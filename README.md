@@ -121,41 +121,23 @@ ____________________________________
 
 Mario should die each time he gets damage, so I changed m->health to 0 no matter the damage reason in the function **"update_mario_health"**:
 ```C
-void update_mario_health(struct MarioState *m) {
-    s32 terrainIsSnow;
-
-    if (m->health >= 0x100) {
-        // When already healing or hurting Mario, Mario's HP is not changed any more here.
-        if (((u32) m->healCounter | (u32) m->hurtCounter) == 0) {
-
-            if ((m->input & INPUT_IN_POISON_GAS) && !(m->action & ACT_FLAG_INTANGIBLE)) {
-                if (!(m->flags & MARIO_METAL_CAP) && !gDebugLevelSelect) {
+if (!(m->flags & MARIO_METAL_CAP) && !gDebugLevelSelect) {
                     // Set Mario's health to zero when he takes damage
                     m->health = 0;
                 }
-            } else {
-                if ((m->action & ACT_FLAG_SWIMMING) && !(m->action & ACT_FLAG_INTANGIBLE)) {
-                    terrainIsSnow = (m->area->terrainType & TERRAIN_MASK) == TERRAIN_SNOW;
+```
 
-                    // Check if Mario is in the Metal Mario state
-                    s32 hasMetalCap = (m->flags & MARIO_METAL_CAP) != 0;
-
-                    // When Mario is near the water surface, recover health (unless in snow),
-                    // when in snow terrains lose 3 health.
-                    // If using the debug level select, do not lose any HP to water.
-                    if ((m->pos[1] >= (m->waterLevel - 140)) && !terrainIsSnow) {
-                        m->health += 0x1A;
-                    } else if (!gDebugLevelSelect) {
+```C
+} else if (!gDebugLevelSelect) {
                         // Check if Mario is not in the Metal Mario state
                         if (!hasMetalCap) {
                             // Set Mario's health to zero when he takes damage underwater (not in the Metal Mario State)
                             m->health = 0;
                         }
                     }
-                }
-            }
-        }
 ```
+
+--> if (!hasmetal) is needed so that rule only applies when Mario is not in the "Metal Mario State"
 
 I changed Mario Lives he gets in the beginning to 100, so you wouldn't constantly get a Game Over (I changed this line) in the function **"init_mario_from_save_file"**:
 ```C
